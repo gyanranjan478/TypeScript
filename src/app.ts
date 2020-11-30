@@ -1,3 +1,42 @@
+// Validation
+interface Validatable {
+    value: string | number;
+    required: boolean | undefined;
+    minLength?: number;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+    // undefined and ? both means same in the above snippet
+}
+
+
+function validate(validatableInput: Validatable) {
+    let isValid = true;
+
+    if (validatableInput.required) {
+        isValid = isValid && validatableInput.value.toString().trim().length !== 0;
+    }
+
+    if(validatableInput.minLength != null && typeof validatableInput.value === 'string') {
+        isValid = isValid && validatableInput.value.length > validatableInput.minLength;
+    }
+
+    if(validatableInput.maxLength != null && typeof validatableInput.value === 'string') {
+        isValid = isValid && validatableInput.value.length > validatableInput.maxLength;
+    }
+
+    if(validatableInput.min != null && typeof validatableInput.value === "number") {
+        isValid = isValid && validatableInput.value >= validatableInput.min;
+    }
+
+    if(validatableInput.max != null && typeof validatableInput.value === "number") {
+        isValid = isValid && validatableInput.value <= validatableInput.max;
+    }
+
+    return isValid;
+}
+
+
 // autobind decorator ( a decorater is a function) : Method decorator
 function autobind(
     target: any, 
@@ -55,12 +94,30 @@ class ProjectInput{
         const enteredDescription  = this.descriptionInputElement.value;
         const enteredPeople  = this.peopleInputElement.value;
 
+        const titleValidatatble: Validatable = {
+            value: enteredTitle,
+            required: true,            
+        }
+
+        const descriptionValidatatble: Validatable = {
+            value: enteredDescription,
+            required: true, 
+            minLength: 5           
+        }
+
+        const peopleValidatatble: Validatable = {
+            value: enteredPeople,
+            required: true,
+            min: 1,
+            max: 5            
+        }
+
         if (
-            enteredTitle.trim().length === 0 
-        || enteredDescription.trim().length === 0 
-        || enteredPeople.trim().length === 0 ){
-            alert("Invalid input. Please try again");
-            return;
+            !validate(titleValidatatble) ||
+            !validate(descriptionValidatatble) ||
+            !validate(peopleValidatatble)) {
+                alert("Invalid input. Please try again");
+                return;
         }else{
             return [enteredTitle, enteredDescription, +enteredPeople]
         }
@@ -98,7 +155,7 @@ class ProjectInput{
         //this.element.addEventListener('submit', this.submitHandler.bind(this))
 
         // Below line is for decorator implementation where as above line is a workaround for this
-        this.element.addEventListener('submit', this.submitHandler
+        this.element.addEventListener('submit', this.submitHandler)
     }
     private attach() {
 
