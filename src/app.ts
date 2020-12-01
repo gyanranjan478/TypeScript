@@ -1,8 +1,29 @@
+enum ProjectStatus { 
+    Active,
+    Finished
+}
+
+// Project Type
+class Project {
+    constructor(
+        public id: string;
+        public title: string;
+        public description: string;
+        public people: number;
+        public status: ProjectStatus
+    ) {
+
+    }
+}
+
+// Function type - function that receives itme ( project ) and we do not care of any value that it returns
+type Listener = (items: Project[]) => void;
+
 // Project State Management
 class ProjectState {
     
-    private listeners: any[] = [];                     // Subscription to the state of project list
-    private projects: any[] = [];               // Holda the project item
+private listeners: Listener[] = [];             // Subscription to the state of project list (stores list of function)
+private projects: Project[] = [];               // Holda the project item
     private static instance: ProjectState;      // Static implementation of the class
 
     // For singleton implementation
@@ -18,18 +39,20 @@ class ProjectState {
         return this.instance;
     }
 
-    addListener(listenerFn: Function) {
+    addListener(listenerFn: Listener) {
         this.listeners.push(listenerFn);
     }
 
 
     addProject(title: string, description: string, numberOfPeople: number) {
-        const newProject = {
-            id: Math.random().toString(),
-            title: title,
-            description: description,
-            people: numberOfPeople
-        }
+
+        const newProject = new Project(
+            Math.random().toString(),
+            title,
+            description,
+            numberOfPeople,
+            ProjectStatus.Active
+        );
 
         this.projects.push(newProject);
 
@@ -108,7 +131,7 @@ class ProjectList {
     templateElement: HTMLTemplateElement;
     hostElement: HTMLDivElement; // HtmlElement;
     element: HTMLElement;
-    assignedProjects: any [];
+    assignedProjects: Project [];
 
     constructor(private type : 'active' | 'finished') {
 
@@ -126,8 +149,16 @@ class ProjectList {
         this.element.id = `${this.type}-projects`;
 
         // Subscribe to the listener
-        projectState.addListener((projects: any[]) => {
-            this.assignedProjects = projects;
+        projectState.addListener((projects: Project[]) => {
+            const relevantProject = projects.filter(prj => {
+                if(this.type === 'active'){
+                    return prj.status === ProjectStatus.Active; 
+                }else{
+                    return prj.status === ProjectStatus.Finished;
+                }
+            })
+
+            this.assignedProjects = relevantProject;
             this.renderProjects();
         })
 
@@ -136,12 +167,15 @@ class ProjectList {
     }
 
     private renderProjects() {
-        const listEl = document.getElementById(`${this.type}-project-list`);
+        const listEl = document.getElementById(`${this.type}-project-list`)!;
+
+        // Clear all list-item before re-rendering
+        listEl.innerHTML = '';
 
         for ( const projectItem of this.assignedProjects) {
             const listItem = document.createElement('li');
             listItem.textContent = projectItem.title;
-            listEl?.appendChild(listItem);
+            listEl.appendChild(listItem);
         }
     }
 
