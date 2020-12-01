@@ -1,3 +1,51 @@
+// Project State Management
+class ProjectState {
+    
+    private listeners: any[] = [];                     // Subscription to the state of project list
+    private projects: any[] = [];               // Holda the project item
+    private static instance: ProjectState;      // Static implementation of the class
+
+    // For singleton implementation
+    private constructor() {}
+
+    // Get instance of the class
+    static getInstance() {
+        if(this.instance) {
+            return this.instance;
+        }
+
+        this.instance = new ProjectState();
+        return this.instance;
+    }
+
+    addListener(listenerFn: Function) {
+        this.listeners.push(listenerFn);
+    }
+
+
+    addProject(title: string, description: string, numberOfPeople: number) {
+        const newProject = {
+            id: Math.random().toString(),
+            title: title,
+            description: description,
+            people: numberOfPeople
+        }
+
+        this.projects.push(newProject);
+
+        // Whenever something changes in project than execute the listener
+        for ( const listernFn of this.listeners) {
+
+            // Slice it to return the copy of array and not orignial array
+            listernFn(this.projects.slice());
+        }
+    }
+
+}
+
+// Global singleton instance of project state. Can be used anywhere in the file
+const projectState = ProjectState.getInstance();
+
 // Validation
 interface Validatable {
     value: string | number;
@@ -37,7 +85,7 @@ function validate(validatableInput: Validatable) {
 }
 
 
-// autobind decorator ( a decorater is a function) : Method decorator
+// Autobind decorator ( a decorater is a function) : Method decorator
 function autobind(
     _: any, 
     _2: string, 
@@ -60,8 +108,11 @@ class ProjectList {
     templateElement: HTMLTemplateElement;
     hostElement: HTMLDivElement; // HtmlElement;
     element: HTMLElement;
+    assignedProjects: any [];
 
     constructor(private type : 'active' | 'finished') {
+
+        this.assignedProjects =[];
         this.templateElement = <HTMLTemplateElement>document.getElementById('project-list')!; // Type Casting
         this.hostElement = document.getElementById('app')! as HTMLDivElement; // Type Casting
 
@@ -74,8 +125,24 @@ class ProjectList {
         // Set the id of the form to trigger the css
         this.element.id = `${this.type}-projects`;
 
+        // Subscribe to the listener
+        projectState.addListener((projects: any[]) => {
+            this.assignedProjects = projects;
+            this.renderProjects();
+        })
+
         this.attach();
         this.renderContent();
+    }
+
+    private renderProjects() {
+        const listEl = document.getElementById(`${this.type}-project-list`);
+
+        for ( const projectItem of this.assignedProjects) {
+            const listItem = document.createElement('li');
+            listItem.textContent = projectItem.title;
+            listEl?.appendChild(listItem);
+        }
     }
 
     private renderContent() {
@@ -181,7 +248,7 @@ class ProjectInput{
         // Tuple is a kind of array
         if (Array.isArray(userInput)) {
             const [title, desc, people] = userInput;
-            console.log(title,desc, people);
+            projectState.addProject(title, desc, people);
         }
 
         this.clearInput();
