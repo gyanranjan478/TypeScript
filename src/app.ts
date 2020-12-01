@@ -6,10 +6,10 @@ enum ProjectStatus {
 // Project Type
 class Project {
     constructor(
-        public id: string;
-        public title: string;
-        public description: string;
-        public people: number;
+        public id: string,
+        public title: string,
+        public description: string,
+        public people: number,
         public status: ProjectStatus
     ) {
 
@@ -126,28 +126,52 @@ function autobind(
     return adjustedDescriptor;
 }
 
-// ProjectList Class
-class ProjectList {
+// Component Base Class : Make it abstract class so that it can not be instantiated but only inherited
+abstract class Component<T extends HTMLElement, U extends HTMLElement> { // When we inherit we set the concrete types
+
     templateElement: HTMLTemplateElement;
-    hostElement: HTMLDivElement; // HtmlElement;
-    element: HTMLElement;
-    assignedProjects: Project [];
+    hostElement: T; // HtmlElement;
+    element: U;
 
-    constructor(private type : 'active' | 'finished') {
+    constructor(templateId: string, hostElementId: string, insertAtStart: boolean, newElementId?: string) {
 
-        this.assignedProjects =[];
-        this.templateElement = <HTMLTemplateElement>document.getElementById('project-list')!; // Type Casting
-        this.hostElement = document.getElementById('app')! as HTMLDivElement; // Type Casting
+        this.templateElement = <HTMLTemplateElement>document.getElementById(templateId)!; // Type Casting
+        this.hostElement = document.getElementById(hostElementId)! as T; // Type Casting
+
 
         // importNode from document takes pointer of a template content which exists on templateEmlement
         // Second argument is for deep clone or not
         const importedNode = document.importNode(this.templateElement.content, true);
 
         // Get the form in the project-input div
-        this.element = importedNode.firstElementChild as HTMLElement;
-        // Set the id of the form to trigger the css
-        this.element.id = `${this.type}-projects`;
+        this.element = importedNode.firstElementChild as U;
 
+        if (newElementId) {
+            // Set the id of the form to trigger the css
+            this.element.id = newElementId;
+        }
+
+        this.attach(insertAtStart);
+    }
+
+    private attach(insertAtBegining: boolean ) {
+        this.hostElement.insertAdjacentElement(insertAtBegining ? 'afterbegin':'beforeend', this.element);
+    }
+
+    abstract configure():void; // The concrete implement is missing and we can force any class inheriting to implement it
+    abstract renderContent(): void;
+}
+
+// ProjectList Class
+class ProjectList extends Component<HTMLDivElement, HTMLElement> {
+    
+    assignedProjects: Project [];
+
+    constructor(private type : 'active' | 'finished') {
+
+        super('project-list', 'app', false, `${type}-projects`)
+        this.assignedProjects =[];
+        
         // Subscribe to the listener
         projectState.addListener((projects: Project[]) => {
             const relevantProject = projects.filter(prj => {
@@ -159,10 +183,11 @@ class ProjectList {
             })
 
             this.assignedProjects = relevantProject;
+            this.configure();
             this.renderProjects();
         })
 
-        this.attach();
+       
         this.renderContent();
     }
 
@@ -179,53 +204,47 @@ class ProjectList {
         }
     }
 
-    private renderContent() {
+    // Need to implment as its part of base class ( can omit if we make configure method as an optional )
+    configure() {} 
+
+    renderContent() {
         const listId = `${this.type}-project-list`;
         this.element.querySelector('ul')!.id = listId;
         this.element.querySelector('h2')!.textContent = this.type.toUpperCase() + ' PROJECTS';
-    }
-
-    private attach() {
-        this.hostElement.insertAdjacentElement('beforeend', this.element);
-    }
-
-    
+    }    
 }
 
 
 // ProjectInput Class
-class ProjectInput{
+class ProjectInput extends Component< HTMLDivElement, HTMLFormElement>{
 
-    templateElement: HTMLTemplateElement;
-    hostElement: HTMLDivElement; // HtmlElement;
-    element: HTMLFormElement;
     titleInputElement: HTMLInputElement;
     descriptionInputElement: HTMLInputElement;
     peopleInputElement: HTMLInputElement;
 
     constructor(){
-        this.templateElement = <HTMLTemplateElement>document.getElementById('project-input')!; // Type Casting
-        this.hostElement = document.getElementById('app')! as HTMLDivElement; // Type Casting
 
-        // importNode from document takes pointer of a template content which exists on templateEmlement
-        // Second argument is for deep clone or not
-        const importedNode = document.importNode(this.templateElement.content, true);
-
-        // Get the form in the project-input div
-        this.element = importedNode.firstElementChild as HTMLFormElement;
-        // Set the id of the form to trigger the css
-        this.element.id = 'user-input';
-
-
+        super('project-input', 'app', true,  'user-input');
+        
         // Get other input elements of the form as properties
         this.titleInputElement = this.element.querySelector('#title') as HTMLInputElement;
         this.descriptionInputElement = this.element.querySelector('#description') as HTMLInputElement;
         this.peopleInputElement = this.element.querySelector('#people') as HTMLInputElement;
-
-
-        this.configure();
-        this.attach();
+        
+        this.configure();       
     }
+
+    // Setup an event listener
+    configure() {
+
+        // Bind the handler to event
+        //this.element.addEventListener('submit', this.submitHandler.bind(this))
+
+        // Below line is for decorator implementation where as above line is a workaround for this
+        this.element.addEventListener('submit', this.submitHandler)
+    }
+
+    renderContent(){}
 
     // Collect user input and validate and return a tuple
     private gatherUserInput(): [string, string, number] | void {
@@ -286,23 +305,6 @@ class ProjectInput{
         }
 
         this.clearInput();
-    }
-
-    // Setup an event listener
-    private configure() {
-
-        // Bind the handler to event
-        //this.element.addEventListener('submit', this.submitHandler.bind(this))
-
-        // Below line is for decorator implementation where as above line is a workaround for this
-        this.element.addEventListener('submit', this.submitHandler)
-    }
-    private attach() {
-
-        // insertAdjacentElement : default method provided by javascript to insert an html element.
-        // first argument - where to insert the element
-        // second argument - htmlDocumentFragment
-        this.hostElement.insertAdjacentElement('afterbegin', this.element);
     }
 }
 
