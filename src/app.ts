@@ -1,7 +1,7 @@
 // Validation
 interface Validatable {
     value: string | number;
-    required: boolean | undefined;
+    required?: boolean;
     minLength?: number;
     maxLength?: number;
     min?: number;
@@ -39,8 +39,8 @@ function validate(validatableInput: Validatable) {
 
 // autobind decorator ( a decorater is a function) : Method decorator
 function autobind(
-    target: any, 
-    methodName: string, 
+    _: any, 
+    _2: string, 
     descriptor: PropertyDescriptor
 ){
     const orginalMethod = descriptor.value;
@@ -51,6 +51,8 @@ function autobind(
             return boundFn;
         }
     }
+
+    return adjustedDescriptor;
 }
 
 
@@ -84,7 +86,7 @@ class ProjectInput{
         this.peopleInputElement = this.element.querySelector('#people') as HTMLInputElement;
 
 
-
+        this.configure();
         this.attach();
     }
 
@@ -115,7 +117,8 @@ class ProjectInput{
         if (
             !validate(titleValidatatble) ||
             !validate(descriptionValidatatble) ||
-            !validate(peopleValidatatble)) {
+            !validate(peopleValidatatble)
+            ) {
                 alert("Invalid input. Please try again");
                 return;
         }else{
