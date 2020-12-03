@@ -1,9 +1,22 @@
+// Drag and Drop interfaces
+interface Draggable {
+    dragStartHandler(event: DragEvent): void;
+    dragEndHandler(event: DragEvent): void;
+}
+
+interface DragTarget {
+    dragOverHandler(event: DragEvent): void;
+    dropHandler(event: DragEvent): void;
+    dragLeaveHandler(event: DragEvent): void;
+}
+
+// Project status
 enum ProjectStatus { 
     Active,
     Finished
 }
 
-// Project Type
+// Project
 class Project {
     constructor(
         public id: string,
@@ -56,6 +69,21 @@ private projects: Project[] = [];               // Holda the project item
 
         this.projects.push(newProject);
 
+        this.updateListeners();
+    }
+
+
+    @autobind
+    moveProject(projectId: string, newStatus: ProjectStatus) {
+        let project = this.projects.find(project =>  project.id === projectId);
+        if(projectId){
+            project!.status = newStatus;
+            this.updateListeners();
+        }
+
+    }
+
+    private updateListeners() {
         // Whenever something changes in project than execute the listener
         for ( const listernFn of this.listeners) {
 
@@ -63,7 +91,6 @@ private projects: Project[] = [];               // Holda the project item
             listernFn(this.projects.slice());
         }
     }
-
 }
 
 // Global singleton instance of project state. Can be used anywhere in the file
@@ -162,8 +189,54 @@ abstract class Component<T extends HTMLElement, U extends HTMLElement> { // When
     abstract renderContent(): void;
 }
 
+// Interface  can not only be used to define custom object type but also can be used to define contract for a class
+class ProjectItem extends Component<HTMLDivElement, HTMLElement>  
+implements Draggable{
+    
+    private project: Project;
+
+    get persons() {
+        if(this.project.people === 1){
+            return "1 person";
+        }else{
+            return `${this.project.people} persons` 
+        }
+    }
+
+    constructor(hostId: string, project: Project) {
+        super('single-project', hostId, false, project.id);
+        this.project = project;
+
+        this.configure();
+        this.renderContent();
+    }
+
+    @autobind // Sets the scope of this
+    dragStartHandler(event: DragEvent) {
+        event.dataTransfer!.setData ('text/plain', this.project.id);
+        event.dataTransfer!.effectAllowed = 'move';
+    }
+
+    @autobind
+    dragEndHandler(_: DragEvent) {} // Let typescript know we are not using it
+
+
+    configure() {
+        this.element.addEventListener("dragstart", this.dragStartHandler);
+    }
+
+    renderContent() {
+        this.element.querySelector('h2')!.textContent = this.project.title;
+        this.element.querySelector('h3')!.textContent = this.persons + ' assigned.';
+        this.element.querySelector('p')!.textContent = this.project.description;
+    }
+
+
+}
+
 // ProjectList Class
-class ProjectList extends Component<HTMLDivElement, HTMLElement> {
+class ProjectList extends Component<HTMLDivElement, HTMLElement> 
+implements DragTarget{
     
     assignedProjects: Project [];
 
@@ -191,6 +264,31 @@ class ProjectList extends Component<HTMLDivElement, HTMLElement> {
         this.renderContent();
     }
 
+    @autobind
+    dragOverHandler(event: DragEvent) {
+        if(event.dataTransfer && event.dataTransfer.types[0] === 'text/plain') {
+
+            event.preventDefault();
+            const listEl = this.element.querySelector('ul')!;
+            listEl.classList.add('droppable');
+        }
+        
+    }
+
+    @autobind
+    dropHandler(event: DragEvent) {
+        const projectId = event.dataTransfer?.getData('text/plain');
+        if(projectId){
+            projectState.moveProject(projectId, this.type === 'active' ? ProjectStatus.Active  : ProjectStatus.Finished)
+        }        
+    }
+
+    @autobind
+    dragLeaveHandler(event: DragEvent) {
+        const listEl = this.element.querySelector('ul')!;
+        listEl.classList.remove('droppable');
+    }
+
     private renderProjects() {
         const listEl = document.getElementById(`${this.type}-project-list`)!;
 
@@ -198,14 +296,16 @@ class ProjectList extends Component<HTMLDivElement, HTMLElement> {
         listEl.innerHTML = '';
 
         for ( const projectItem of this.assignedProjects) {
-            const listItem = document.createElement('li');
-            listItem.textContent = projectItem.title;
-            listEl.appendChild(listItem);
+            new ProjectItem(this.element.querySelector('ul')!.id, projectItem);
         }
     }
 
     // Need to implment as its part of base class ( can omit if we make configure method as an optional )
-    configure() {} 
+    configure() {
+        this.element.addEventListener('dragover', this.dragOverHandler);
+        this.element.addEventListener('dragleave', this.dragLeaveHandler);
+        this.element.addEventListener('drop', this.dropHandler);
+    } 
 
     renderContent() {
         const listId = `${this.type}-project-list`;
@@ -311,3 +411,4 @@ class ProjectInput extends Component< HTMLDivElement, HTMLFormElement>{
 const newProjectInput = new ProjectInput();
 const activeProjectList = new ProjectList('active');
 const finishedProjectList = new ProjectList('finished');
+

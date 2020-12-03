@@ -87,6 +87,13 @@ button:active {
     padding: 1rem;
 }
 
+.projects li{
+    box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.26);
+    padding: 1rem;
+    margin: 1rem;
+    background-color: white;
+}
+
 .projects li h2 {
     color: #ff0062;
     margin: 0.5rem 0;
@@ -95,6 +102,14 @@ button:active {
 .projects li h3 {
     color: #575757;
     font-size: 1rem;
+}
+
+.droppable {
+    background-color: #ffe3ee;
+}
+
+#finished-projects .droppable{
+    background: #d6e1ff ;
 }
 
 .projects li p {
