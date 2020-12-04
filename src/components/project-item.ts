@@ -1,5 +1,7 @@
 /// <reference path="base-component.ts"/>
-
+/// <reference path="../decorators/autobind.ts" />
+/// <reference path="../models/project.ts" />
+/// <reference path="../models/drag-drop-interface.ts" />
 namespace App{
      // Interface  can not only be used to define custom object type but also can be used to define contract for a class
      export class ProjectItem extends Component<HTMLDivElement, HTMLElement>  
