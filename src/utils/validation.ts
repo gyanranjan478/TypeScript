@@ -36,6 +36,7 @@ namespace App {
             isValid = isValid && validatableInput.value <= validatableInput.max;
         }
 
+        console.log("all good");
         return isValid;
     }
 
