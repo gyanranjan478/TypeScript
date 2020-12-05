@@ -36,6 +36,7 @@ textarea:focus {
     background: #fff5f9;
 }
 
+/* Button */
 button {
     font: inherit;
     background: #ff0062;
@@ -76,6 +77,7 @@ button:active {
     background-color: #0044ff;
 }
 
+ /* Project : Project header (where it is used) */
 .projects h2 {
     margin: 0;
     color: white;

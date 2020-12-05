@@ -47,6 +47,8 @@ namespace App {
             @autobind
             moveProject(projectId: string, newStatus: ProjectStatus) {
                 let project = this.projects.find(project =>  project.id === projectId);
+
+                // Check if project is available or not
                 if(projectId){
                     project!.status = newStatus;
                     this.updateListeners();
